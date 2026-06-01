@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Draft Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #eee;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        /* Draft Controls */
+        .draft-controls {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        select, input {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #3a7bd5;
+            background: #0f3460;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* AI Advice Section */
+        .ai-advice {
+            background: linear-gradient(135deg, rgba(0,210,255,0.1), rgba(58,123,213,0.1));
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,210,255,0.3);
+        }
+
+        .ai-advice h3 {
+            margin-bottom: 10px;
+            color: #00d2ff;
+        }
+
+        .advice-content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .recommendation {
+            flex: 2;
+        }
+
+        .recommended-player {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00d2ff;
+        }
+
+        .reasoning {
+            color: #ccc;
+            margin-top: 10px;
+        }
+
+        .confidence {
+            text-align: center;
+            padding: 10px 20px;
+            background: rgba(0,210,255,0.2);
+            border-radius: 10px;
+        }
+
+        .confidence-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d2ff;
+        }
+
+        /* Two-column layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Available Players Section */
+        .available-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .available-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #3a7bd5;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Teams Section */
+        .teams-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .teams-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #3a7bd5;
+            padding-bottom: 10px;
+        }
+
+        .team-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .team-header {
+            background: linear-gradient(135deg, #0f3460, #1a1a2e);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .team-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00d2ff;
+        }
+
+        .team-owner {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .player-count {
+            background: #3a7bd5;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .team-players {
+            padding: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .team-card.expanded .team-players {
+            max-height: 500px;
+        }
+
+        .roster-player {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .roster-player-info {
+            flex: 1;
+        }
+
+        .roster-player-name {
+            font-weight: bold;
+        }
+
+        .roster-player-details {
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+
+        /* Player Cards for Available */
+        .player-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .player-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .player-card:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateX(5px);
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .player-details {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 4px;
+        }
+
+        .position-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .position-QB { background: #e74c3c; }
+        .position-RB { background: #3498db; }
+        .position-WR { background: #2ecc71; }
+        .position-TE { background: #f39c12; }
+
+        .draft-btn {
+            padding: 8px 16px;
+            background: #27ae60;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 8px;
+        }
+
+        .draft-btn:hover {
+            background: #2ecc71;
+        }
+
+        .draft-select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #3a7bd5;
+            background: #0f3460;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0f3460;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            z-index: 1000;
+        }
+
+        .add-team-btn, .add-player-btn {
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .add-team-btn { background: #27ae60; }
+        .add-player-btn { background: #3498db; margin-top: 10px; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 15px;
+            width: 500px;
+            max-width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+        }
+
+        .modal-content input, .modal-content select {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .small-btn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background: #e74c3c;
+        }
+
+        .small-btn:hover {
+            background: #c0392b;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1s infinite;
+        }
+
+        .highlight {
+            border: 2px solid #00d2ff !important;
+            background: rgba(0,210,255,0.2) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏈 Fantasy Football Draft Assistant</h1>
+        <div class="subtitle">AI-Powered Draft Recommendations</div>
+
+        <!-- Draft Controls -->
+        <div class="draft-controls">
+            <div class="control-group">
+                <label>Current Pick #</label>
+                <input type="number" id="pickNumber" min="1" max="16" value="8">
+            </div>
+            <div class="control-group">
+                <label>League Type</label>
+                <select id="leagueType">
+                    <option value="PPR">PPR (Points Per Reception)</option>
+                    <option value="Half-PPR">Half-PPR</option>
+                    <option value="Standard">Standard</option>
+                </select>
+            </div>
+            <button id="getAdviceBtn">🤖 Get AI Draft Advice</button>
+        </div>
+
+        <!-- AI Advice Section -->
+        <div id="aiAdvice" class="ai-advice" style="display: none;">
+            <h3>🤖 AI Draft Recommendation</h3>
+            <div class="advice-content">
+                <div class="recommendation">
+                    <div class="recommended-player" id="recommendedPlayer">-</div>
+                    <div class="reasoning" id="reasoning">-</div>
+                </div>
+                <div class="confidence">
+                    <div class="confidence-value" id="confidenceScore">-</div>
+                    <div>Confidence</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="dashboard">
+            <!-- Available Players (Free Agents) -->
+            <div class="available-section">
+                <h2>
+                    📋 Free Agents 
+                    <span id="availableCount"></span>
+                </h2>
+                <div id="availablePlayers" class="player-list">
+                    <div class="empty-message">Loading players...</div>
+                </div>
+                <button id="addPlayerBtn" class="add-player-btn">➕ Add New Player</button>
+            </div>
+
+            <!-- Teams & Rosters -->
+            <div class="teams-section">
+                <h2>🏆 Teams <span id="teamCount"></span></h2>
+                <div id="teamsContainer">
+                    <div class="empty-message">No teams yet. Create one below!</div>
+                </div>
+                <button id="addTeamBtn" class="add-team-btn">➕ Add New Team</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Team Modal -->
+    <div id="addTeamModal" class="modal">
+        <div class="modal-content">
+            <h3>➕ Create New Team</h3>
+            <input type="text" id="newTeamName" placeholder="Team Name" />
+            <input type="email" id="newTeamOwner" placeholder="Owner Email" />
+            <div class="modal-buttons">
+                <button id="cancelTeamBtn">Cancel</button>
+                <button id="saveTeamBtn" style="background: #27ae60;">Create Team</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div id="addPlayerModal" class="modal">
+        <div class="modal-content">
+            <h3>➕ Add New Player</h3>
+            <input type="text" id="newPlayerName" placeholder="Player Name" />
+            <select id="newPlayerPosition">
+                <option value="QB">QB - Quarterback</option>
+                <option value="RB">RB - Running Back</option>
+                <option value="WR">WR - Wide Receiver</option>
+                <option value="TE">TE - Tight End</option>
+                <option value="K">K - Kicker</option>
+                <option value="DEF">DEF - Defense</option>
+            </select>
+            <input type="number" id="newPlayerByeWeek" placeholder="Bye Week (1-18)" min="1" max="18" />
+            <input type="number" id="newPlayerADP" placeholder="Average Draft Position (e.g., 4.5)" step="0.1" />
+            <input type="number" id="newPlayerPoints" placeholder="Projected Points (e.g., 320.5)" step="0.5" />
+            <div class="modal-buttons">
+                <button id="cancelPlayerBtn">Cancel</button>
+                <button id="savePlayerBtn" style="background: #3498db;">Add Player</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="status">🟢 Ready</div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:3000';
+        
+        // Global state
+        let allPlayers = [];
+        let teams = [];
+
+        // Helper: Fetch with error handling
+        async function fetchAPI(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${error}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`API Error (${endpoint}):`, error);
+                showStatus(`❌ Error: ${error.message}`, true);
+                throw error;
+            }
+        }
+
+        // Show status message
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = isError ? `❌ ${message}` : `🟢 ${message}`;
+            statusDiv.style.background = isError ? '#c0392b' : '#0f3460';
+            setTimeout(() => {
+                if (statusDiv.textContent === `🟢 ${message}`) {
+                    statusDiv.textContent = '🟢 Ready';
+                    statusDiv.style.background = '#0f3460';
+                }
+            }, 3000);
+        }
+
+        // Load all data - FIXED to refresh properly
+        async function loadData() {
+            showStatus('Loading data...');
+            try {
+                const [players, teamsData] = await Promise.all([
+                    fetchAPI('/players'),
+                    fetchAPI('/teams')
+                ]);
+                allPlayers = players;
+                teams = teamsData;
+                render();
+                showStatus(`Loaded ${allPlayers.length} players, ${teams.length} teams`);
+            } catch (error) {
+                showStatus('Failed to load data. Is your backend running?', true);
+            }
+        }
+
+        // Draft a player to a specific team - FIXED to reload data
+        async function draftPlayer(playerId, playerName, teamId, teamName) {
+            showStatus(`Drafting ${playerName} to ${teamName}...`);
+            try {
+                await fetchAPI(`/players/${playerId}/team`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ teamId })
+                });
+                
+                showStatus(`✅ ${playerName} drafted to ${teamName}!`);
+                await loadData(); // Reload fresh data from server
+                
+                // Auto-refresh AI advice
+                // if (document.getElementById('aiAdvice').style.display !== 'none') {
+                //     getAIAdvice();
+                // }
+            } catch (error) {
+                showStatus(`Failed to draft ${playerName}`, true);
+            }
+        }
+
+        // Create a new team
+        async function createTeam(name, ownerEmail) {
+            showStatus('Creating team...');
+            try {
+                await fetchAPI('/teams', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, ownerEmail })
+                });
+                showStatus(`✅ Team "${name}" created!`);
+                await loadData(); // Reload fresh data
+                closeTeamModal();
+            } catch (error) {
+                showStatus('Failed to create team', true);
+            }
+        }
+
+        // Add a new player
+        async function addPlayer(name, position, byeWeek, avgDraftPosition, projectedPoints) {
+            showStatus('Adding player...');
+            try {
+                await fetchAPI('/players', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        name, 
+                        position, 
+                        byeWeek: parseInt(byeWeek),
+                        avgDraftPosition: parseFloat(avgDraftPosition),
+                        projectedPoints: parseFloat(projectedPoints),
+                        teamId: null  // New players start as free agents
+                    })
+                });
+                showStatus(`✅ Player "${name}" added!`);
+                await loadData(); // Reload fresh data
+                closePlayerModal();
+            } catch (error) {
+                showStatus('Failed to add player', true);
+            }
+        }
+
+        // Get AI draft advice
+        async function getAIAdvice() {
+            const pick = parseInt(document.getElementById('pickNumber').value);
+            const leagueType = document.getElementById('leagueType').value;
+            
+            // Get available players (free agents)
+            const availablePlayers = allPlayers.filter(p => !p.teamId);
+            const availableNames = availablePlayers.map(p => p.name);
+            
+            if (availableNames.length === 0) {
+                showStatus('No players available to draft!', true);
+                return;
+            }
+            
+            showStatus('Getting AI advice...');
+            try {
+                const advice = await fetchAPI('/draft-advice', {
+                    method: 'POST',
+                    body: JSON.stringify({ pick, leagueType })
+                });
+                
+                document.getElementById('recommendedPlayer').textContent = advice.recommendedPlayer;
+                document.getElementById('reasoning').textContent = advice.reasoning;
+                document.getElementById('confidenceScore').textContent = `${advice.confidenceScore}%`;
+                document.getElementById('aiAdvice').style.display = 'block';
+                
+                highlightRecommendedPlayer(advice.recommendedPlayer);
+                showStatus('AI advice ready!');
+            } catch (error) {
+                showStatus('Failed to get AI advice', true);
+            }
+        }
+
+        // Highlight recommended player
+        function highlightRecommendedPlayer(playerName) {
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('highlight');
+            });
+            
+            const cards = document.querySelectorAll('.player-card');
+            for (let card of cards) {
+                if (card.querySelector('.player-name')?.textContent.trim() === playerName) {
+                    card.classList.add('highlight');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
+
+        // Toggle team expansion
+        function toggleTeam(teamId) {
+            const teamCard = document.getElementById(`team-${teamId}`);
+            if (teamCard) {
+                teamCard.classList.toggle('expanded');
+            }
+        }
+
+        // Render the UI
+        function render() {
+            // Separate available (no team) vs rostered
+            const available = allPlayers.filter(p => !p.teamId);
+            
+            // Update counts
+            document.getElementById('availableCount').textContent = `(${available.length})`;
+            document.getElementById('teamCount').textContent = `(${teams.length})`;
+            
+            // Render available players
+            const availableContainer = document.getElementById('availablePlayers');
+            if (available.length === 0) {
+                availableContainer.innerHTML = '<div class="empty-message">🎉 No free agents! Draft complete!</div>';
+            } else {
+                availableContainer.innerHTML = available.map(player => {
+                    // Create team dropdown options
+                    const teamOptions = teams.map(team => 
+                        `<option value="${team.id}">${team.name}</option>`
+                    ).join('');
+                    
+                    return `
+                        <div class="player-card" data-player-id="${player.id}">
+                            <div class="player-info">
+                                <div class="player-name">
+                                    ${player.name}
+                                    <span class="position-badge position-${player.position}">${player.position}</span>
+                                </div>
+                                <div class="player-details">
+                                    📊 ${player.projectedPoints} pts | 📈 ADP ${player.avgDraftPosition} | ⏰ Bye ${player.byeWeek}
+                                </div>
+                            </div>
+                            <div class="action-group">
+                                <select id="teamSelect-${player.id}" class="draft-select">
+                                    <option value="">Select team...</option>
+                                    ${teamOptions}
+                                </select>
+                                <button class="draft-btn" onclick="draftWithSelectedTeam(${player.id}, '${player.name.replace(/'/g, "\\'")}')">
+                                    ✨ Draft
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Render teams and their rosters
+            const teamsContainer = document.getElementById('teamsContainer');
+            if (teams.length === 0) {
+                teamsContainer.innerHTML = '<div class="empty-message">No teams yet. Click "Add New Team" to start!</div>';
+            } else {
+                teamsContainer.innerHTML = teams.map(team => {
+                    const teamPlayers = allPlayers.filter(p => p.teamId === team.id);
+                    return `
+                        <div id="team-${team.id}" class="team-card" onclick="toggleTeam(${team.id})">
+                            <div class="team-header">
+                                <div>
+                                    <div class="team-name">${team.name}</div>
+                                    <div class="team-owner">👤 ${team.ownerEmail}</div>
+                                </div>
+                                <div class="player-count">${teamPlayers.length} players</div>
+                            </div>
+                            <div class="team-players" onclick="event.stopPropagation()">
+                                ${teamPlayers.length === 0 ? 
+                                    '<div class="empty-message" style="padding: 20px;">No players yet. Draft some!</div>' : 
+                                    teamPlayers.map(player => `
+                                        <div class="roster-player">
+                                            <div class="roster-player-info">
+                                                <div class="roster-player-name">
+                                                    ${player.name}
+                                                    <span class="position-badge position-${player.position}">${player.position}</span>
+                                                </div>
+                                                <div class="roster-player-details">
+                                                    📊 ${player.projectedPoints} pts | ⏰ Bye ${player.byeWeek}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Helper function to draft with selected team
+        window.draftWithSelectedTeam = function(playerId, playerName) {
+            const select = document.getElementById(`teamSelect-${playerId}`);
+            const teamId = select.value;
+            
+            if (!teamId) {
+                showStatus('Please select a team first!', true);
+                select.style.border = '2px solid #e74c3c';
+                setTimeout(() => {
+                    select.style.border = '1px solid #3a7bd5';
+                }, 2000);
+                return;
+            }
+            
+            const team = teams.find(t => t.id == teamId);
+            if (team) {
+                draftPlayer(playerId, playerName, teamId, team.name);
+            }
+        };
+
+        // Modal handling
+        const teamModal = document.getElementById('addTeamModal');
+        const playerModal = document.getElementById('addPlayerModal');
+        
+        function openTeamModal() {
+            teamModal.style.display = 'flex';
+            document.getElementById('newTeamName').value = '';
+            document.getElementById('newTeamOwner').value = '';
+        }
+        
+        function closeTeamModal() {
+            teamModal.style.display = 'none';
+        }
+        
+        function openPlayerModal() {
+            playerModal.style.display = 'flex';
+            document.getElementById('newPlayerName').value = '';
+            document.getElementById('newPlayerPosition').value = 'QB';
+            document.getElementById('newPlayerByeWeek').value = '';
+            document.getElementById('newPlayerADP').value = '';
+            document.getElementById('newPlayerPoints').value = '';
+        }
+        
+        function closePlayerModal() {
+            playerModal.style.display = 'none';
+        }
+        
+        // Seed demo data
+        async function seedDemoData() {
+            const players = await fetchAPI('/players').catch(() => []);
+            const existingTeams = await fetchAPI('/teams').catch(() => []);
+             console.log(players)
+             console.log(existingTeams)
+
+            // Seed players if empty
+            if (players.length === 0) {
+                showStatus('Seeding demo players...');
+                
+                const demoPlayers = [
+                    { name: 'Christian McCaffrey', position: 'RB', teamId: null, byeWeek: 9, avgDraftPosition: 1.2, projectedPoints: 385.5 },
+                    { name: 'Justin Jefferson', position: 'WR', teamId: null, byeWeek: 13, avgDraftPosition: 2.5, projectedPoints: 350.0 },
+                    { name: 'Patrick Mahomes', position: 'QB', teamId: null, byeWeek: 10, avgDraftPosition: 4.5, projectedPoints: 420.0 },
+                    { name: 'Travis Kelce', position: 'TE', teamId: null, byeWeek: 10, avgDraftPosition: 6.1, projectedPoints: 290.0 },
+                    { name: 'Saquon Barkley', position: 'RB', teamId: null, byeWeek: 13, avgDraftPosition: 3.8, projectedPoints: 310.0 },
+                    { name: 'Tyreek Hill', position: 'WR', teamId: null, byeWeek: 10, avgDraftPosition: 3.2, projectedPoints: 340.0 },
+                    { name: 'Josh Allen', position: 'QB', teamId: null, byeWeek: 13, avgDraftPosition: 5.5, projectedPoints: 400.0 },
+                    { name: 'Austin Ekeler', position: 'RB', teamId: null, byeWeek: 5, avgDraftPosition: 2.8, projectedPoints: 330.0 },
+                    { name: 'Ja\'Marr Chase', position: 'WR', teamId: null, byeWeek: 7, avgDraftPosition: 4.2, projectedPoints: 325.0 },
+                    { name: 'Davante Adams', position: 'WR', teamId: null, byeWeek: 13, avgDraftPosition: 5.8, projectedPoints: 305.0 }
+                ];
+                
+                for (const player of demoPlayers) {
+                    await fetchAPI('/players', {
+                        method: 'POST',
+                        body: JSON.stringify(player)
+                    }).catch(e => console.error('Failed to seed:', e));
+                }
+            }
+            
+            // Seed a demo team if empty
+            if (existingTeams.length === 0) {
+                showStatus('Creating demo team...');
+                await fetchAPI('/teams', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: 'The Destroyers', ownerEmail: 'destroy@example.com' })
+                }).catch(e => console.error('Failed to create demo team:', e));
+
+                await fetchAPI('/teams', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: 'The Punisher', ownerEmail: 'punish@example.com' })
+                }).catch(e => console.error('Failed to create demo team:', e));
+            }
+            
+            await loadData();
+        }
+
+        // Event listeners
+        document.getElementById('getAdviceBtn').addEventListener('click', getAIAdvice);
+        document.getElementById('addTeamBtn').addEventListener('click', openTeamModal);
+        document.getElementById('addPlayerBtn').addEventListener('click', openPlayerModal);
+        
+        document.getElementById('saveTeamBtn').addEventListener('click', () => {
+            const name = document.getElementById('newTeamName').value;
+            const owner = document.getElementById('newTeamOwner').value;
+            if (name && owner) {
+                createTeam(name, owner);
+            } else {
+                showStatus('Please enter both team name and owner email', true);
+            }
+        });
+        
+        document.getElementById('savePlayerBtn').addEventListener('click', () => {
+            const name = document.getElementById('newPlayerName').value;
+            const position = document.getElementById('newPlayerPosition').value;
+            const byeWeek = document.getElementById('newPlayerByeWeek').value;
+            const adp = document.getElementById('newPlayerADP').value;
+            const points = document.getElementById('newPlayerPoints').value;
+            
+            if (name && position && byeWeek && adp && points) {
+                addPlayer(name, position, byeWeek, adp, points);
+            } else {
+                showStatus('Please fill in all fields', true);
+            }
+        });
+        
+        document.getElementById('cancelTeamBtn').addEventListener('click', closeTeamModal);
+        document.getElementById('cancelPlayerBtn').addEventListener('click', closePlayerModal);
+        
+        // Close modal on outside click
+        window.onclick = function(event) {
+            if (event.target === teamModal) {
+                closeTeamModal();
+            }
+            if (event.target === playerModal) {
+                closePlayerModal();
+            }
+        };
+        
+        // Initialize
+        async function init() {
+            await seedDemoData();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
